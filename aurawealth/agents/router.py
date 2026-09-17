@@ -8,6 +8,7 @@ from langgraph.graph import END, START, StateGraph
 from aurawealth.agents.classifier import classify_intent
 from aurawealth.agents.insights import subscription_comparison
 from aurawealth.calculators.mortgage import model_prepayment, prepayment_amount
+from aurawealth.calculators.goals import model_goal_affordability
 from aurawealth.models import InsightResult
 from aurawealth.rag.library import retrieve
 
@@ -19,6 +20,7 @@ class AgentState(TypedDict, total=False):
     route: str
     insight: InsightResult
     scenario: dict[str, Any]
+    goal_plan: dict[str, Any]
     sources: list[dict[str, Any]]
     response: str
 
@@ -58,8 +60,14 @@ def run_scenario_testing(state: AgentState, retriever: Callable[[str], list]) ->
     return {"scenario": scenario, "sources": sources, "response": response}
 
 
-def goal_placeholder(_: AgentState) -> dict[str, str]:
-    return {"response": "Goal Planning is the next AuraWealth feature to be added."}
+def run_goal_planning(state: AgentState, retriever: Callable[[str], list]) -> dict[str, Any]:
+    plan = model_goal_affordability(state["client_data"])
+    verdict = "can afford" if plan["affordable"] else "cannot afford"
+    response = f"You {verdict} the ${plan['planned_cost']:,.0f} holiday while keeping your emergency fund at ${plan['emergency_fund_target']:,.0f}. Your projected cash after the trip is ${plan['cash_after_cost']:,.0f}, leaving a ${plan['buffer']:,.0f} buffer."
+    sources = retriever(state["query"])
+    if sources:
+        response += "\n\nTrusted guidance: " + ", ".join(source["title"] for source in sources)
+    return {"goal_plan": plan, "sources": sources, "response": response}
 
 
 def route_after_classifier(state: AgentState) -> str:
@@ -74,7 +82,7 @@ def build_workflow(
     workflow.add_node("router", lambda state: choose_route(state, classifier))
     workflow.add_node("insights", lambda state: run_insights(state, retriever))
     workflow.add_node("scenario_testing", lambda state: run_scenario_testing(state, retriever))
-    workflow.add_node("goal_planning", goal_placeholder)
+    workflow.add_node("goal_planning", lambda state: run_goal_planning(state, retriever))
     workflow.add_node("unsupported", unsupported_query)
     workflow.add_edge(START, "router")
     workflow.add_conditional_edges(
