@@ -11,6 +11,7 @@ from aurawealth.calculators.mortgage import model_prepayment, prepayment_amount
 from aurawealth.calculators.goals import model_goal_affordability
 from aurawealth.models import InsightResult
 from aurawealth.rag.library import retrieve
+from aurawealth.governance import AGENTS, create_task, guardrail, should_escalate
 
 
 class AgentState(TypedDict, total=False):
@@ -23,10 +24,25 @@ class AgentState(TypedDict, total=False):
     goal_plan: dict[str, Any]
     sources: list[dict[str, Any]]
     response: str
+    agent_id: str
+    audit: dict[str, Any]
 
 
 def choose_route(state: AgentState, classifier: Callable[[str], str]) -> dict[str, str]:
     return {"route": classifier(state["query"])}
+
+def preflight(state: AgentState) -> dict[str, Any]:
+    blocked = guardrail(state["query"])
+    if blocked: return {"route": "blocked", "response": "I can’t help with requests that bypass security or access another client’s information.", "audit": {"guardrail": blocked}}
+    return {}
+
+def govern(state: AgentState) -> dict[str, Any]:
+    agent_id = AGENTS.get(state.get("route"), "agent.governance.v1")
+    audit = {"client_id": state["client_id"], "agent_id": agent_id, "route": state.get("route"), "sources": state.get("sources", []), "action": "informational"}
+    if should_escalate(state["query"]):
+        create_task(state["client_id"], agent_id, state["query"])
+        return {"agent_id": agent_id, "audit": audit, "response": "Your request has been sent to your advisor for review. No action has been taken."}
+    return {"agent_id": agent_id, "audit": audit}
 
 
 def run_insights(state: AgentState, retriever: Callable[[str], list]) -> dict[str, Any]:
@@ -80,11 +96,14 @@ def build_workflow(
 ):
     workflow = StateGraph(AgentState)
     workflow.add_node("router", lambda state: choose_route(state, classifier))
+    workflow.add_node("preflight", preflight)
+    workflow.add_node("governance", govern)
     workflow.add_node("insights", lambda state: run_insights(state, retriever))
     workflow.add_node("scenario_testing", lambda state: run_scenario_testing(state, retriever))
     workflow.add_node("goal_planning", lambda state: run_goal_planning(state, retriever))
     workflow.add_node("unsupported", unsupported_query)
-    workflow.add_edge(START, "router")
+    workflow.add_edge(START, "preflight")
+    workflow.add_conditional_edges("preflight", lambda s: "blocked" if s.get("route") == "blocked" else "router", {"blocked": "governance", "router": "router"})
     workflow.add_conditional_edges(
         "router",
         route_after_classifier,
@@ -95,10 +114,11 @@ def build_workflow(
             "unsupported": "unsupported",
         },
     )
-    workflow.add_edge("insights", END)
-    workflow.add_edge("scenario_testing", END)
-    workflow.add_edge("goal_planning", END)
-    workflow.add_edge("unsupported", END)
+    workflow.add_edge("insights", "governance")
+    workflow.add_edge("scenario_testing", "governance")
+    workflow.add_edge("goal_planning", "governance")
+    workflow.add_edge("unsupported", "governance")
+    workflow.add_edge("governance", END)
     return workflow.compile()
 
 
