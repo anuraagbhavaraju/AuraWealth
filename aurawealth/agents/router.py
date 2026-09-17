@@ -40,6 +40,8 @@ def govern(state: AgentState) -> dict[str, Any]:
     agent_id = AGENTS.get(state.get("route"), "agent.governance.v1")
     action = "blocked" if state.get("route") == "blocked" else "informational"
     audit = {"client_id": state["client_id"], "agent_id": agent_id, "route": state.get("route"), "sources": state.get("sources", []), "action": action}
+    if state.get("route") == "blocked":
+        return {"agent_id": agent_id, "audit": audit}
     if should_escalate(state["query"]):
         create_task(state["client_id"], agent_id, state["query"])
         return {"agent_id": agent_id, "audit": audit, "response": "Your request has been sent to your advisor for review. No action has been taken."}
