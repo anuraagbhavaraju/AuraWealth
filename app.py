@@ -68,7 +68,7 @@ with client_tab:
         st.session_state[message_key] = [
             {
                 "role": "assistant",
-                "content": "I can compare your subscription spending this quarter with last quarter.",
+                "content": "Ask me anything about your spending, mortgage scenarios, or financial goals.",
             }
         ]
 
