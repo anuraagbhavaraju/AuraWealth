@@ -96,6 +96,12 @@ with client_tab:
             scenario_metrics[0].metric("Extra payment", currency(scenario["extra_payment"]))
             scenario_metrics[1].metric("Estimated interest saved", currency(scenario["interest_saved"]))
             scenario_metrics[2].metric("Loan term reduced", f"{scenario['months_saved']} months")
+        if result.get("goal_plan"):
+            plan = result["goal_plan"]
+            goal_metrics = st.columns(3)
+            goal_metrics[0].metric("Holiday cost", currency(plan["planned_cost"]))
+            goal_metrics[1].metric("Cash after holiday", currency(plan["cash_after_cost"]))
+            goal_metrics[2].metric("Emergency-fund buffer", currency(plan["buffer"]))
 
 with advisor_tab:
     st.subheader("Advisor review queue")

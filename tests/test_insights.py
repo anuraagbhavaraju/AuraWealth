@@ -31,3 +31,8 @@ class OnDemandInsightsTests(unittest.TestCase):
         self.assertEqual(result["route"], "scenario_testing")
         self.assertIn("interest", result["response"])
         self.assertGreater(result["scenario"]["interest_saved"], 0)
+
+    def test_goal_planning_preserves_emergency_fund(self):
+        result = answer_query("Can I afford a $6,000 holiday in December while keeping my emergency fund at $15,000?", load_client_data(), classifier=lambda _: "goal_planning", retriever=lambda _: [])
+        self.assertTrue(result["goal_plan"]["affordable"])
+        self.assertEqual(result["goal_plan"]["buffer"], 1300)
