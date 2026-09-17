@@ -3,6 +3,7 @@ import streamlit as st
 from aurawealth.agents.router import answer_query
 from aurawealth.data import load_client_data
 from aurawealth.rag.library import build_index, chunk_count
+from aurawealth.governance import tasks
 
 def currency(value: float) -> str:
     return f"${value:,.0f}"
@@ -102,8 +103,14 @@ with client_tab:
             goal_metrics[0].metric("Holiday cost", currency(plan["planned_cost"]))
             goal_metrics[1].metric("Cash after holiday", currency(plan["cash_after_cost"]))
             goal_metrics[2].metric("Emergency-fund buffer", currency(plan["buffer"]))
+        if result.get("audit"):
+            with st.expander("How Aura reached this result"):
+                st.json(result["audit"])
 
 with advisor_tab:
     st.subheader("Advisor review queue")
-    st.info("No requests yet. AI escalations will appear here after the governance milestone.")
-    st.caption("This demo currently contains one client: Alex Tan.")
+    queue = tasks()
+    if not queue: st.info("No requests yet.")
+    for client_id, agent_id, request, status, created_at in queue:
+        st.write(f"**{status}** · {client_id} · {agent_id}")
+        st.caption(f"{request} · {created_at}")
