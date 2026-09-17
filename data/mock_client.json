@@ -1,0 +1,48 @@
+{
+  "client": {
+    "id": "client_001",
+    "name": "Alex Tan",
+    "monthly_income": 8500,
+    "cash_balance": 22000,
+    "investment_balance": 128000,
+    "emergency_fund_target": 15000
+  },
+  "mortgage": {
+    "outstanding_balance": 480000,
+    "interest_rate_percent": 3.2,
+    "remaining_years": 22,
+    "monthly_payment": 2500
+  },
+  "goal": {
+    "name": "December holiday",
+    "target_amount": 6000,
+    "target_month": "2026-12",
+    "saved_amount": 1800,
+    "monthly_saving": 700
+  },
+  "monthly_expenses": {
+    "housing_and_bills": 3100,
+    "living_costs": 1900,
+    "other_commitments": 900
+  },
+  "subscriptions": [
+    {"service": "Netflix", "amount": 20, "month": "2026-04"},
+    {"service": "Spotify", "amount": 12, "month": "2026-04"},
+    {"service": "Adobe", "amount": 25, "month": "2026-04"},
+    {"service": "Netflix", "amount": 20, "month": "2026-05"},
+    {"service": "Spotify", "amount": 12, "month": "2026-05"},
+    {"service": "Adobe", "amount": 25, "month": "2026-05"},
+    {"service": "Netflix", "amount": 20, "month": "2026-06"},
+    {"service": "Spotify", "amount": 12, "month": "2026-06"},
+    {"service": "Adobe", "amount": 25, "month": "2026-06"},
+    {"service": "Netflix", "amount": 22, "month": "2026-07"},
+    {"service": "Spotify", "amount": 12, "month": "2026-07"},
+    {"service": "Adobe", "amount": 35, "month": "2026-07"},
+    {"service": "Netflix", "amount": 22, "month": "2026-08"},
+    {"service": "Spotify", "amount": 12, "month": "2026-08"},
+    {"service": "Adobe", "amount": 35, "month": "2026-08"},
+    {"service": "Netflix", "amount": 22, "month": "2026-09"},
+    {"service": "Spotify", "amount": 12, "month": "2026-09"},
+    {"service": "Adobe", "amount": 35, "month": "2026-09"}
+  ]
+}
