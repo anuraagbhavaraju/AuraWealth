@@ -1,7 +1,7 @@
 import streamlit as st
 
 from aurawealth.agents.router import answer_query
-from aurawealth.data import load_client_data
+from aurawealth.data import client_options, load_client_data
 from aurawealth.rag.library import build_index, chunk_count
 from aurawealth.governance import tasks
 
@@ -10,7 +10,10 @@ def currency(value: float) -> str:
 
 
 st.set_page_config(page_title="AuraWealth", page_icon="✦", layout="wide")
-data = load_client_data()
+options = client_options()
+selected_name = st.sidebar.selectbox("Demo client", [name for _, name in options])
+selected_id = next(client_id for client_id, name in options if name == selected_name)
+data = load_client_data(selected_id)
 client = data["client"]
 goal = data["goal"]
 mortgage = data["mortgage"]
