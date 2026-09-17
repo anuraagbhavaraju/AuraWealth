@@ -1,8 +1,9 @@
+import time
+
 import streamlit as st
 
 from aurawealth.agents.router import answer_query
 from aurawealth.data import client_options, load_client_data
-from aurawealth.rag.library import build_index, chunk_count
 from aurawealth.governance import tasks
 
 def currency(value: float) -> str:
@@ -21,14 +22,14 @@ mortgage = data["mortgage"]
 st.title("AuraWealth")
 st.caption("A transparent view of your money, goals, and advisor support.")
 
-with st.sidebar:
-    st.subheader("Trusted knowledge library")
-    st.caption("Synthetic, approved AuraWealth education content")
-    st.metric("Indexed chunks", chunk_count())
-    if st.button("Build semantic index"):
-        with st.spinner("Embedding approved guidance..."):
-            total = build_index()
-        st.success(f"Indexed {total:,} chunks across 12 documents.")
+def stream_words(text):
+    for word in text.split(" "):
+        yield word + " "
+        time.sleep(0.015)
+
+def plain_audit(audit):
+    sources = ", ".join(source["title"] for source in audit.get("sources", [])) or "No retrieved sources"
+    return f"Agent: {audit.get('agent_id')}\n\nClient scope: {audit.get('client_id')}\n\nRoute: {audit.get('route')}\n\nSources: {sources}\n\nAction: {audit.get('action')}"
 
 client_tab, advisor_tab = st.tabs(["Client workspace", "Advisor queue"])
 
@@ -62,29 +63,31 @@ with client_tab:
 
     st.divider()
     st.markdown("#### Ask Aura")
-    if "messages" not in st.session_state:
-        st.session_state.messages = [
+    message_key = f"messages_{client['id']}"
+    if message_key not in st.session_state:
+        st.session_state[message_key] = [
             {
                 "role": "assistant",
                 "content": "I can compare your subscription spending this quarter with last quarter.",
             }
         ]
 
-    for message in st.session_state.messages:
-        st.chat_message(message["role"]).write(message["content"])
+    for message in st.session_state[message_key]:
+        st.chat_message(message["role"]).markdown(message["content"].replace("$", "\\$"))
 
     prompt = st.chat_input("Ask about your finances")
     if prompt:
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state[message_key].append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
         try:
-            result = answer_query(prompt, data, client_id=client["id"])
+            history = "\n".join(f"{item['role']}: {item['content']}" for item in st.session_state[message_key][-6:])
+            result = answer_query(prompt, data, client_id=client["id"], conversation_context=f"Conversation context:\n{history}\nCurrent question: {prompt}")
             response = result["response"]
         except RuntimeError as error:
             response = f"I couldn't classify that request right now: {error}"
             result = {}
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        st.chat_message("assistant").write(response)
+        st.session_state[message_key].append({"role": "assistant", "content": response})
+        st.chat_message("assistant").write_stream(stream_words(response))
 
         if result.get("insight"):
             insight = result["insight"]
@@ -108,7 +111,7 @@ with client_tab:
             goal_metrics[2].metric("Emergency-fund buffer", currency(plan["buffer"]))
         if result.get("audit"):
             with st.expander("How Aura reached this result"):
-                st.json(result["audit"])
+                st.markdown(plain_audit(result["audit"]))
 
 with advisor_tab:
     st.subheader("Advisor review queue")

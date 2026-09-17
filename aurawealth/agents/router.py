@@ -1,7 +1,7 @@
 """A small LangGraph workflow that routes to the available specialist agent."""
 
 from collections.abc import Callable
-from typing import Any, TypedDict
+from typing import Any, Optional, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
@@ -128,7 +128,9 @@ def answer_query(
     client_id: str = "client_001",
     classifier: Callable[[str], str] = classify_intent,
     retriever: Callable[[str], list] = retrieve,
+    conversation_context: Optional[str] = None,
 ) -> AgentState:
-    return build_workflow(classifier, retriever).invoke(
+    routing_classifier = lambda _: classifier(conversation_context or query)
+    return build_workflow(routing_classifier, retriever).invoke(
         {"query": query, "client_data": client_data, "client_id": client_id}
     )
