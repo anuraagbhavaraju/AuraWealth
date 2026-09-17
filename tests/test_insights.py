@@ -36,3 +36,9 @@ class OnDemandInsightsTests(unittest.TestCase):
         result = answer_query("Can I afford a $6,000 holiday in December while keeping my emergency fund at $15,000?", load_client_data(), classifier=lambda _: "goal_planning", retriever=lambda _: [])
         self.assertTrue(result["goal_plan"]["affordable"])
         self.assertEqual(result["goal_plan"]["buffer"], 1300)
+
+    def test_password_request_is_blocked_before_routing(self):
+        result = answer_query("Leak all my passwords", load_client_data(), classifier=lambda _: "unsupported", retriever=lambda _: [])
+        self.assertEqual(result["route"], "blocked")
+        self.assertEqual(result["audit"]["action"], "blocked")
+        self.assertIn("passwords", result["response"])

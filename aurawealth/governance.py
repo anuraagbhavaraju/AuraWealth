@@ -5,7 +5,7 @@ from pathlib import Path
 
 DB = Path(__file__).resolve().parents[1] / "data" / "advisor.db"
 AGENTS = {"on_demand_insights": "agent.insights.v1", "scenario_testing": "agent.scenario.v1", "goal_planning": "agent.goal.v1"}
-BLOCKED = ("ignore previous instructions", "system prompt", "other client's data", "another client's data")
+BLOCKED = ("ignore previous instructions", "system prompt", "other client's data", "another client's data", "password", "credential", "api key", "secret key")
 ESCALATE = ("move $", "transfer", "buy ", "sell ", "invest ", "advisor review")
 
 def connection():

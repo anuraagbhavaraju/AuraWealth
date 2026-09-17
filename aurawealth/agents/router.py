@@ -33,12 +33,13 @@ def choose_route(state: AgentState, classifier: Callable[[str], str]) -> dict[st
 
 def preflight(state: AgentState) -> dict[str, Any]:
     blocked = guardrail(state["query"])
-    if blocked: return {"route": "blocked", "response": "I can’t help with requests that bypass security or access another client’s information.", "audit": {"guardrail": blocked}}
+    if blocked: return {"route": "blocked", "response": "I can’t help disclose passwords, credentials, private instructions, or another client’s information.", "audit": {"guardrail": blocked, "action": "blocked"}}
     return {}
 
 def govern(state: AgentState) -> dict[str, Any]:
     agent_id = AGENTS.get(state.get("route"), "agent.governance.v1")
-    audit = {"client_id": state["client_id"], "agent_id": agent_id, "route": state.get("route"), "sources": state.get("sources", []), "action": "informational"}
+    action = "blocked" if state.get("route") == "blocked" else "informational"
+    audit = {"client_id": state["client_id"], "agent_id": agent_id, "route": state.get("route"), "sources": state.get("sources", []), "action": action}
     if should_escalate(state["query"]):
         create_task(state["client_id"], agent_id, state["query"])
         return {"agent_id": agent_id, "audit": audit, "response": "Your request has been sent to your advisor for review. No action has been taken."}
